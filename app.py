@@ -29,7 +29,10 @@ if not app.debug:
 
 @app.route(ROUTE_TOKEN + '/')
 def index_route():
-    return send_from_directory('templates', 'index.html')
+    return render_template('index.html', **{
+        'route': request.args.get('route'),
+        'date': request.args.get('date')
+    })
 
 @app.route(ROUTE_TOKEN + '/data/<path:path>')
 def data_route(path):
@@ -37,12 +40,7 @@ def data_route(path):
 
 @app.route(ROUTE_TOKEN + '/processed/<path:path>')
 def processed_route(path):
-    f = os.path.normpath(os.path.join(DATA_FOLDER, path))
-    if '..' in f or not f.startswith(os.path.normpath(DATA_FOLDER)):
-        return abort(400, 'invalid path')
-    
-    if not os.path.exists(f):
-        return abort(404, 'invalid path')
+    f = check_path(path)
     
     if os.path.isdir(f):
         print('processing directory', f)
@@ -66,25 +64,8 @@ def processed_route(path):
 
 @app.route(ROUTE_TOKEN + '/analyzed/<path>/<date>')
 def analyzed_route(path, date):
-    f = os.path.normpath(os.path.join(DATA_FOLDER, path))
-    if '..' in f or not f.startswith(os.path.normpath(DATA_FOLDER)):
-        return abort(400, 'invalid path')
-    
-    if not os.path.exists(f):
-        return abort(404, 'invalid path')
-    
-    if not os.path.isdir(f):
-        return abort(400, 'invalid path')
-    
-    df = os.path.normpath(os.path.join(DATA_FOLDER, path, date))
-    if '..' in df or not df.startswith(os.path.normpath(DATA_FOLDER)):
-        return abort(400, 'invalid path')
-    
-    if not os.path.exists(df):
-        return abort(404, 'invalid path')
-    
-    if not os.path.isdir(df):
-        return abort(400, 'invalid path')
+    f = check_path(path)
+    df = check_path(os.path.join(path, date))
     
     def parse_vararg(n):
         arg = request.args.get(n)
@@ -102,3 +83,35 @@ def analyzed_route(path, date):
 
     out = parse_folder(f, filter_dates=[date], filter_snapshots=filter_snapshots, with_detail=with_detail, with_prices=with_prices)
     return jsonify(out)
+
+@app.route(ROUTE_TOKEN + '/routes')
+def get_routes_route():
+    routes = []
+    for file in os.listdir(DATA_FOLDER):
+        if '-' in file and os.path.isdir(os.path.join(DATA_FOLDER, file)):
+            routes.append(file)
+    return jsonify(routes)
+
+@app.route(ROUTE_TOKEN + '/routes/<route>')
+def get_dates_route(route):
+    f = check_path(route)
+    days = {}
+    for file in os.listdir(f):
+        p = os.path.join(f, file)
+        if os.path.isdir(p):
+            scrapes = list(filter(lambda x: x.endswith('.json'), os.listdir(p)))
+            days[file] = len(scrapes)
+    return jsonify(days)
+
+def check_path(path):
+    f = os.path.normpath(os.path.join(DATA_FOLDER, path))
+    if '..' in f or not f.startswith(os.path.normpath(DATA_FOLDER)):
+        return abort(400, 'invalid path')
+    
+    if not os.path.exists(f):
+        return abort(404, 'invalid path')
+    
+    if not os.path.isdir(f):
+        return abort(400, 'invalid path')
+    
+    return f

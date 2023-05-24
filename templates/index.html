@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+    <title>Amtrak Price History</title>
+    <style>
+table tr td, table tr th {
+    padding: 5px;
+    text-align: left;
+}
+    </style>
+    <script>
+getRoutes = async function() {
+    fetch('routes', {method: 'GET'})
+    .then(resp => resp.json())
+    .then((out) => {
+        console.log('routes', out);
+        document.querySelector('#routes').innerHTML = '';
+        out.forEach(i => {
+            var e = document.createElement('option');
+            e.innerText = i;
+            e.value = i;
+            document.querySelector('#routes').appendChild(e);
+        });
+    });
+}
+getDates = async function(route) {
+    document.querySelectorAll('.selectedroute').forEach(i => i.innerText = route);
+    document.querySelector('#dateselect').style.display = '';
+    history.pushState({}, "", "?route=" + route);
+    fetch('routes/' + route, {method: 'GET'})
+    .then(resp => resp.json())
+    .then((out) => {
+        console.log('dates', out);
+        document.querySelector('#dates').innerHTML = '';
+        Object.keys(out).sort().forEach(i => {
+            var e = document.createElement('option');
+            e.innerText = i + ' (' + out[i] + ' scrapes)';
+            e.value = route + '/' + i;
+            document.querySelector('#dates').appendChild(e);
+        });
+    });
+}
+getDate = function(path) {
+    var p = path.split('/');
+    var route = p[0];
+    var date = p[1];
+    document.querySelector('#datedetails').style.display = '';
+    document.querySelectorAll('.selectedroute').forEach(i => i.innerText = route);
+    document.querySelectorAll('.selecteddate').forEach(i => i.innerText = date);
+    history.pushState({}, "", "?route=" + route + "&date=" + date);
+    
+    analyze(route, date, {}, function(out) {
+        var entries = Object.entries(out[date]);
+        var trains = [];
+        for (var i=0; i<entries.length; i++) {
+            var entry = entries[i];
+            trains.push([entry[1]['start'], entry[0], entry[1]]);
+        }
+        trains.sort();
+        console.log('trains', trains);
+        document.querySelector('#datetrains').innerHTML = '';
+        trains.forEach((fields) => {
+            var dict = fields[2];
+            dict['name'] = fields[1];
+            document.querySelector('#datetrains').innerHTML += renderHTML('train_row', dict);
+        });
+    
+    });
+}
+
+analyze = function(route, date, params, cb) {
+    fetch(
+        'analyzed/' + route + '/' + date + '?' + new URLSearchParams(params || {}).toString(),
+        {method: 'GET'}
+    )
+    .then(resp => resp.json())
+    .then((out) => {
+        console.log('analyze '+route+' '+date, out);
+        cb(out);
+    });
+}
+
+renderHTML = function(tplId, dict) {
+    var tpl = document.querySelector("script#" + tplId);
+    var html = tpl.innerHTML;
+    for (var key in dict) {
+        html = html.replace(new RegExp("\\{" + key + "\\}", "g"), dict[key]);
+        html = html.replace(new RegExp("\\{\\{ " + key + " \\}\\}", "g"), dict[key]);
+    }
+    return html;
+}
+
+window.onload = function() {
+    getRoutes();
+}
+    </script>
+</head>
+<body>
+    <h1>Amtrak Price History</h1>
+    <h2>Choose a route:</h2>
+    <select id="routes" size=5 style="min-width: 250px" onchange="getDates(this.value)"></select>
+    <div id="dateselect" style="display: none">
+        <h2>Choose a date for <span class="selectedroute"></span>:</h2>
+        <select id="dates" size=25 style="min-width: 250px" onchange="getDate(this.value)"></select>
+
+    </div>
+    <div id="datedetails" style="display:none">
+        <h2>Trains on <span class="selecteddate"></span></h2>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Departure</th>
+                    <th>Train</th>
+                    <th>Last Price</th>
+                    <td>(for)</td>
+                    <th>Min Price</th>
+                    <td>(for)</td>
+                    <td>(at)</td>
+                </tr>
+            </thead>
+            <tbody id="datetrains">
+                <tr>
+                    <td colspan="7">Loading data...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script type="text/template" id="train_row">
+        {% raw %}
+        <tr>
+            <th>{{ start }}</th>
+            <th>{{ name }}</th>
+            <td>{{ curPrice }}</td>
+            <td>{{ curPriceFor }}</td>
+            <td>{{ minPrice }}</td>
+            <td>{{ minPriceFor }}</td>
+            <td>{{ minPriceAt }} ago</td>
+        </tr>
+        {% endraw %}
+    </script>
+
+
+    {% if route %}
+        <script>getDates({{ route|tojson }})</script>
+        {% if date %}
+            <script>getDate({{ route|tojson }} + '/' + {{ date|tojson }})</script>
+        {% endif %}
+    {% endif %}
+</body>
+</html>
