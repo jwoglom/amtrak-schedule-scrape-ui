@@ -61,19 +61,38 @@ getDate = function(path) {
         console.log('trains', trains);
         document.querySelector('#datetrains').innerHTML = '';
         var sparkline_data = {};
+        var numSamples = [];
+        var minDt = [];
+        var maxDt = [];
         trains.forEach((fields, i) => {
             var dict = fields[2];
             dict['name'] = fields[1];
+            dict['meanPrice'] = dict['meanPrice'].toFixed(2);
             dict['sparkline_id'] = 'sparkline_' + i;
+            
             // '2023-05-23T06:15:00' => 202305230615
             var skipAfter = parseInt(date) * 10000 + parseInt(dict['start'].split('T')[1].replace(':', '').split(':')[0]);
             sparkline_data[dict['sparkline_id']] = [dict['prices'], skipAfter];
+            numSamples.push(dict['prices'].length);
+            if (dict['prices']) {
+                minDt.push(parseInt(dict['prices'][0][0].replace('-')));
+                maxDt.push(parseInt(dict['prices'][dict['prices'].length-1][0].replace('-')));
+            }
+
             document.querySelector('#datetrains').innerHTML += renderHTML('train_row', dict);
         });
 
+        document.querySelector('#datedetails_summary').innerHTML = renderHTML('date_summary', {
+            'minTime': Math.min(...minDt),
+            'maxTime': Math.max(...maxDt),
+            'totalSamples': numSamples.reduceRight((a,b)=>a+b),
+            'avgSamples': parseInt(numSamples.reduceRight((a,b)=>a+b) / numSamples.length),
+            'trainCount': numSamples.length,
+        })
+
         Object.entries(sparkline_data).forEach((o) => {
             buildSparkline(o[0], o[1][0], o[1][1]);
-        })
+        });
     
     });
 }
@@ -201,16 +220,21 @@ window.onload = function() {
     </div>
     <div id="datedetails" style="display:none">
         <h2>Trains on <span class="selecteddate"></span></h2>
+        <div id="datedetails_summary"></div>
+        <script type="text/template" id="date_summary">
+            {% raw %}
+            For {{ trainCount }} trains, average of {{ avgSamples }} samples scraped between {{ minTime }} and {{ maxTime }}
+            {% endraw %}
+        </script>
         <table border="1">
             <thead>
                 <tr>
                     <th>Departure</th>
                     <th>Train</th>
                     <th>Last Price</th>
-                    <td>(for)</td>
                     <th>Min Price</th>
-                    <td>(for)</td>
-                    <td>(at)</td>
+                    <th>Mode Price</th>
+                    <th>Mean Price</th>
                     <td></td>
                 </tr>
             </thead>
@@ -227,11 +251,26 @@ window.onload = function() {
         <tr>
             <th>{{ start }}</th>
             <th>{{ name }}</th>
-            <td>{{ curPrice }}</td>
-            <td>{{ curPriceFor }}</td>
-            <td>{{ minPrice }}</td>
-            <td>{{ minPriceFor }}</td>
-            <td>{{ minPriceAt }} ago</td>
+            <td>
+                <b>${{ curPrice }}</b><br />
+                for {{ curPriceFor }}<br />
+                {{ curPriceAt }} before depart
+            </td>
+            <td>
+                <b>${{ minPrice }}</b><br />
+                for {{ minPriceFor }}<br />
+                {{ minPriceAt }} before depart
+            </td>
+            <td>
+                <b>${{ modePrice }}</b><br />
+                for {{ modePriceFor }}<br />
+                &nbsp;
+            </td>
+            <td>
+                <b>${{ meanPrice }}</b><br />
+                &nbsp;<br />
+                &nbsp;
+            </td>
             <td class="sparkline">
                 <canvas height="100" width="400" id="{{ sparkline_id }}"></canvas>
             </td>

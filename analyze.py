@@ -93,6 +93,23 @@ def parse_folder(data_folder, filter_dates=None, filter_snapshots=None, with_det
                 lastTime = item[0]
 
             pricesOnly = [i[1] for i in prices]
+            modePrice = None
+            meanPrice = None
+            modeForTime = 0
+            if pricesOnly:
+                modePrice = max(set(pricesOnly), key=pricesOnly.count)
+                meanPrice = (sum(pricesOnly) / len(pricesOnly))
+
+                lastTime = 0
+                for detail in build[train]['detail']:
+                    minPrice = min(detail['fares'].values()) if detail['fares'] else None
+                    item = [detail['time'], minPrice]
+                    if not item[1]:
+                        continue
+                    elif item[1] == modePrice:
+                        if lastTime:
+                            modeForTime += timeToInt(item[0]) - timeToInt(lastTime)
+                    lastTime = item[0]
 
             curPriceFor = 0
             for i in range(len(prices)-1,0,-1):
@@ -124,8 +141,10 @@ def parse_folder(data_folder, filter_dates=None, filter_snapshots=None, with_det
             build[train]['minPriceForMins'] = minForTime
             build[train]['minPriceFor'] = timeLabel(minForTime)
             build[train]['minPriceAt'] = timeLabel(dtToInt(startDt) - timeToInt(minTimes[-1][0])) if prices else None
-            build[train]['modePrice'] = max(set(pricesOnly), key=pricesOnly.count) if pricesOnly else None
-            build[train]['meanPrice'] = (sum(pricesOnly) / len(pricesOnly)) if pricesOnly else None
+            build[train]['modePrice'] = modePrice
+            build[train]['modePriceFor'] = timeLabel(modeForTime) if pricesOnly else None
+            build[train]['modePriceForMins'] = modeForTime if pricesOnly else None
+            build[train]['meanPrice'] = meanPrice
             build[train]['start'] = build[train]['detail'][0]['start']
             build[train]['end'] = build[train]['detail'][0]['end']
             if not with_detail:
