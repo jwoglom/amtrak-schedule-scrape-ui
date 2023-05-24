@@ -13,7 +13,7 @@ FROM base AS python-deps
 
 # Install pipenv and compilation dependencies
 RUN pip install pipenv
-RUN apt-get update && apt-get install -y --no-install-recommends gcc jq
+RUN apt-get update && apt-get install -y --no-install-recommends gcc
 
 RUN mkdir -p /base
 WORKDIR /base
@@ -27,8 +27,9 @@ FROM base AS runtime
 
 # Copy virtualenv from python-deps stage
 COPY --from=python-deps /base/.venv /base/.venv
-COPY --from=python-deps /usr/bin/jq /usr/bin/jq
 ENV PATH="/base/.venv/bin:$PATH"
+
+RUN apt-get update && apt-get install -y --no-install-recommends jq
 
 # Create and switch to a new user
 RUN useradd --create-home appuser
