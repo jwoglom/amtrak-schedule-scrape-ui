@@ -37,7 +37,7 @@ USER appuser
 # Install application into container
 COPY . .
 
-EXPOSE 
+EXPOSE 8000
 
 # Run the application
 ENTRYPOINT ["gunicorn", "-w", "1", "app:app", "-b", "127.0.0.1:8000", "--log-level", "INFO", "--access-logfile", "-"]
