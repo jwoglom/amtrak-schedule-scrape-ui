@@ -40,4 +40,4 @@ COPY . .
 EXPOSE 8000
 
 # Run the application
-ENTRYPOINT ["gunicorn", "-w", "1", "app:app", "-b", "127.0.0.1:8000", "--log-level", "INFO", "--access-logfile", "-"]
+ENTRYPOINT ["gunicorn", "-w", "1", "app:app", "-b", "0.0.0.0:8000", "--log-level", "INFO", "--access-logfile", "-"]
