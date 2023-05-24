@@ -8,6 +8,7 @@ table tr td, table tr th {
     text-align: left;
 }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.umd.min.js"></script>
     <script>
 getRoutes = async function() {
     fetch('routes', {method: 'GET'})
@@ -59,11 +60,20 @@ getDate = function(path) {
         trains.sort();
         console.log('trains', trains);
         document.querySelector('#datetrains').innerHTML = '';
-        trains.forEach((fields) => {
+        var sparkline_data = {};
+        trains.forEach((fields, i) => {
             var dict = fields[2];
             dict['name'] = fields[1];
+            dict['sparkline_id'] = 'sparkline_' + i;
+            // '2023-05-23T06:15:00' => 202305230615
+            var skipAfter = parseInt(date) * 10000 + parseInt(dict['start'].split('T')[1].replace(':', '').split(':')[0]);
+            sparkline_data[dict['sparkline_id']] = [dict['prices'], skipAfter];
             document.querySelector('#datetrains').innerHTML += renderHTML('train_row', dict);
         });
+
+        Object.entries(sparkline_data).forEach((o) => {
+            buildSparkline(o[0], o[1][0], o[1][1]);
+        })
     
     });
 }
@@ -77,6 +87,91 @@ analyze = function(route, date, params, cb) {
     .then((out) => {
         console.log('analyze '+route+' '+date, out);
         cb(out);
+    });
+}
+
+buildSparkline = function(id, data, skipAfter) {
+    var dataLabels = [];
+    var dataPoints = [];
+    data.forEach(d => {
+        // ['20230510-0403', 259]
+        var dtInt = parseInt(d[0].replace('-', ''));
+        if (dtInt > skipAfter) return;
+        dataLabels.push(d[0]);
+        dataPoints.push(d[1]);
+    });
+    var cjsOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        animation: {
+            easing: 'easeInOutQuad',
+            duration: 500
+        },
+
+        elements: {
+            line: {
+                tension: 0.4
+            }
+        },
+
+        scales: {
+            x: {
+                border: {
+                    display: false
+                },
+                grid: {
+                    display: false
+                },
+                ticks: {
+                    display: false
+                }
+            },
+            y: {
+                ticks: {
+                    display: false
+                },
+                border: {
+                    display: false
+                },
+                grid: {
+                    display: false
+                }
+            }
+        },
+
+        plugins: {
+            legend: {
+                display: false,
+            },
+            
+        },
+    };
+    var cjsData = {
+        labels: dataLabels,
+        datasets: [
+            {
+                label: '',
+                borderColor: '#282828',
+                backgroundColor: 'transparent',
+                pointBackgroundColor: 'white',
+                data: dataPoints,
+                fill: 'origin',
+                borderWidth: 2,
+                pointRadius: 0,
+                hitRadius: 25,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: '#282828',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 6,
+            }
+        ]
+    };
+    var el = document.getElementById(id).getContext('2d');
+    var inst = new Chart(el, {
+        type: 'line',
+        data: cjsData,
+        options: cjsOptions,
+        plugins: []
     });
 }
 
@@ -116,11 +211,12 @@ window.onload = function() {
                     <th>Min Price</th>
                     <td>(for)</td>
                     <td>(at)</td>
+                    <td></td>
                 </tr>
             </thead>
             <tbody id="datetrains">
                 <tr>
-                    <td colspan="7">Loading data...</td>
+                    <td colspan="8">Loading data...</td>
                 </tr>
             </tbody>
         </table>
@@ -136,6 +232,9 @@ window.onload = function() {
             <td>{{ minPrice }}</td>
             <td>{{ minPriceFor }}</td>
             <td>{{ minPriceAt }} ago</td>
+            <td class="sparkline">
+                <canvas height="100" width="400" id="{{ sparkline_id }}"></canvas>
+            </td>
         </tr>
         {% endraw %}
     </script>

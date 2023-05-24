@@ -118,6 +118,7 @@ def parse_folder(data_folder, filter_dates=None, filter_snapshots=None, with_det
             build[train]['curPrice'] = prices[-1][1] if prices else None
             build[train]['curPriceForMins'] = curPriceFor
             build[train]['curPriceFor'] = timeLabel(curPriceFor)
+            build[train]['curPriceAt'] = timeLabel(dtToInt(startDt) - timeToInt(prices[-1][0])) if prices else None
             build[train]['minPrice'] = minTimes[0][1] if len(minTimes) > 0 else None
             build[train]['minTimes'] = [i[0] for i in minTimes]
             build[train]['minPriceForMins'] = minForTime
