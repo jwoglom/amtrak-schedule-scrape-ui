@@ -49,6 +49,7 @@ getDate = function(path) {
     document.querySelectorAll('.selectedroute').forEach(i => i.innerText = route);
     document.querySelectorAll('.selecteddate').forEach(i => i.innerText = date);
     history.pushState({}, "", "?route=" + route + "&date=" + date);
+    document.querySelector('#datetrains').innerHTML = '<tr><td colspan="8">Loading data...</td></tr>';
     
     analyze(route, date, {}, function(out) {
         var entries = Object.entries(out[date]);
@@ -59,7 +60,6 @@ getDate = function(path) {
         }
         trains.sort();
         console.log('trains', trains);
-        document.querySelector('#datetrains').innerHTML = '';
         var sparkline_data = {};
         var numSamples = [];
         var minDt = [];
