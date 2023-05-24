@@ -27,6 +27,7 @@ FROM base AS runtime
 
 # Copy virtualenv from python-deps stage
 COPY --from=python-deps /base/.venv /base/.venv
+COPY --from=python-deps /usr/local/bin/jq /usr/local/bin/jq
 ENV PATH="/base/.venv/bin:$PATH"
 
 # Create and switch to a new user
