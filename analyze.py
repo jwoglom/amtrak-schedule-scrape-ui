@@ -66,9 +66,10 @@ def parse_folder(data_folder, filter_dates=None, filter_snapshots=None, with_det
                 day = int(parts[0])
                 hr = int(parts[1][:2])
                 mn = int(parts[1][2:])
-                return mn + 60*hr + 24*60*day
+                dt = datetime(int(day[0:4]), int(day[4:6]), int(day[6:8]), hr, mn)
+                return (dt - datetime.utcfromtimestamp(0)).total_seconds() // 60
             def dtToInt(n):
-                return (n - datetime.utcfromtimestamp(0)).total_seconds() / 60
+                return (n - datetime.utcfromtimestamp(0)).total_seconds() // 60
 
 
             prices = []
