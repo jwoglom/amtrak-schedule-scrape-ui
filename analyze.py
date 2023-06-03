@@ -63,7 +63,7 @@ def parse_folder(data_folder, filter_dates=None, filter_snapshots=None, with_det
 
             def timeToInt(t):
                 parts = t.split('-')
-                day = int(parts[0])
+                day = parts[0]
                 hr = int(parts[1][:2])
                 mn = int(parts[1][2:])
                 dt = datetime(int(day[0:4]), int(day[4:6]), int(day[6:8]), hr, mn)
