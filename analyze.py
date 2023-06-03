@@ -124,11 +124,11 @@ def parse_folder(data_folder, filter_dates=None, filter_snapshots=None, with_det
             def timeLabel(mins):
                 ret = ''
                 if mins//(60*24) > 0:
-                    ret += f'{mins//(60*24)}d'
+                    ret += f'{int(mins//(60*24))}d'
                 if (mins//60)%24 > 0:
-                    ret += f'{(mins//60)%24}h'
+                    ret += f'{int((mins//60)%24)}h'
                 if mins%60 > 0 and not (mins//60)>=24:
-                    ret += f'{mins%60}m'
+                    ret += f'{int(mins%60)}m'
                 return ret
 
             startDt = datetime.strptime(build[train]['detail'][0]['start'],  "%Y-%m-%dT%H:%M:%S")
