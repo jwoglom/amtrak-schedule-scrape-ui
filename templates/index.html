@@ -64,6 +64,7 @@ getDate = function(path) {
         var numSamples = [];
         var minDt = [];
         var maxDt = [];
+        document.querySelector('#datetrains').innerHTML = '';
         trains.forEach((fields, i) => {
             var dict = fields[2];
             dict['name'] = fields[1];
