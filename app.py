@@ -20,6 +20,10 @@ DATA_FOLDER = 'data'
 if os.getenv('DATA_FOLDER'):
     DATA_FOLDER = os.getenv('DATA_FOLDER')
 
+ANALYZED_FOLDER = 'analyzed'
+if os.getenv('ANALYZED_FOLDER'):
+    ANALYZED_FOLDER = os.getenv('ANALYZED_FOLDER')
+
 # Log messages with Gunicorn
 if not app.debug:
     import logging
@@ -74,6 +78,15 @@ def analyzed_route(path, date):
         else:
             arg = None
         return arg
+
+    no_cache = request.args.get('no_cache') == 'true'
+    if not no_cache:
+        cf = check_analyzed_path(path)
+        if cf:
+            dcf = check_analyzed_path(os.path.join(path, '%s.json' % date), dircheck=False)
+            if dcf:
+                print('analyze (cached):', dcf, date)
+                return jsonify(json.loads(open(dcf, 'r').read()))
     
     filter_snapshots = parse_vararg('filter_snapshots')
     with_detail = request.args.get('with_detail') == 'true'
@@ -115,3 +128,17 @@ def check_path(path):
         return abort(400, 'invalid path')
     
     return f
+
+def check_analyzed_path(path, dircheck=True):
+    f = os.path.normpath(os.path.join(ANALYZED_FOLDER, path))
+    if '..' in f or not f.startswith(os.path.normpath(ANALYZED_FOLDER)):
+        return False
+
+    if not os.path.exists(f):
+        return False
+
+    if dircheck and not os.path.isdir(f):
+        return False
+
+    return f
+
